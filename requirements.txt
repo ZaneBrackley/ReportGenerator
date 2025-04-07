@@ -1,0 +1,4 @@
+pdfplumber
+camelot-py
+python-docx
+sqlalchemy==0.7.10

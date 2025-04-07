@@ -1,0 +1,5 @@
+venv/
+PDFReports/
+main.py
+extractor.py
+setup.sh
