@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Text Extraction</title>
+</head>
+<body>
+    <h1>Upload PDF to Extract Text</h1>
+
+    <form method="POST" enctype="multipart/form-data">
+        <label for="file">Choose PDF File(s):</label>
+        <input type="file" name="file" accept=".pdf" multiple><br><br>
+        <input type="submit" value="Upload">
+    </form>
+
+    <h2>Extracted Text:</h2>
+    <pre>{{ text }}</pre> <!-- Display the extracted text here -->
+
+</body>
+</html>

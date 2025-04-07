@@ -1,5 +1,4 @@
 venv/
 PDFReports/
-main.py
-extractor.py
-setup.sh
+__pycache__/
+uploads/

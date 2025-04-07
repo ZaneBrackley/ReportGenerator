@@ -1,4 +1,3 @@
-pdfplumber
-camelot-py
-python-docx
-sqlalchemy==0.7.10
+Flask
+PyPDF2
+SQLAlchemy
