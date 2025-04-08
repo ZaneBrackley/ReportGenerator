@@ -1,3 +1,7 @@
 Flask
 PyPDF2
 SQLAlchemy
+pdfplumber
+camelot-py
+opencv-python
+pandas

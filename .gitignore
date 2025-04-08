@@ -1,4 +1,8 @@
-venv/
-PDFReports/
-__pycache__/
-uploads/
+/venv/
+/__pycache__/
+/temp/
+/uploads/
+/PDFReports/
+/db/report_data.db
+*.pyc
+*.pyo
