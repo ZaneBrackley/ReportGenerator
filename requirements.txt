@@ -3,5 +3,5 @@ PyPDF2
 SQLAlchemy
 pdfplumber
 camelot-py
+python-docx
 opencv-python
-pandas

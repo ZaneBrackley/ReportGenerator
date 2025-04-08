@@ -8,7 +8,6 @@ class Config:
     DB_PATH = os.path.join(os.path.dirname(BASE_DIR), 'db', 'report_data.db')  # Points to 'root/db/report_data.db'
 
     # Additional configuration...
-    UPLOAD_FOLDER = os.path.join(os.path.dirname(BASE_DIR), 'uploads')  # Folder for uploaded files
     TEMP_FOLDER = os.path.join(os.path.dirname(BASE_DIR), 'temp')  # Temporary folder for processing
     PDF_REPORTS_FOLDER = os.path.join(os.path.dirname(BASE_DIR), 'PDFReports')  # Folder for PDF reports
     
