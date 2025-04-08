@@ -4,17 +4,22 @@ import pdfplumber
 import camelot
 import sqlite3
 
+# Add parent directory to the system path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from config.config import Config
 from extractor_dispatcher import get_extractor
 from database import create_tables, insert_device_info
 
-# Explicitly define template folder
-app = Flask(__name__, template_folder=os.path.join(os.path.dirname(__file__), '..', 'templates'))
+# Define template and static folder paths
+app = Flask(
+    __name__,
+    template_folder=os.path.join(os.path.dirname(__file__), '..', 'templates'),
+    static_folder=os.path.join(os.path.dirname(__file__), '..', 'static')
+)
 
 # Load configuration from config.py
-app.config.from_object(Config)  # Or use ProductionConfig in production
+app.config.from_object(Config)
 
 # Ensure temp dir exists
 os.makedirs(app.config['TEMP_FOLDER'], exist_ok=True)

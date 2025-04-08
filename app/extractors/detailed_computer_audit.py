@@ -21,12 +21,12 @@ class DetailedComputerAuditExtractor(BaseExtractor):
                 grouped_dfs.append(pd.concat(table_dfs[i:i + chunk_size], ignore_index=True))
             return grouped_dfs
 
-        grouped_tables = group_tables(self.tables)  # <--- use self.tables here
+        grouped_tables = group_tables(self.tables)
 
         for group in grouped_tables:
             # Device dictionary with a 'device' key
             device = {
-                "device": {  # The 'device' key should exist
+                "device": {
                     "device_name": "",
                     "description": "",
                     "domain": "",
@@ -72,7 +72,8 @@ class DetailedComputerAuditExtractor(BaseExtractor):
                 },
                 "lifecycle": {
                     "purchase_date": "",
-                    "warranty_expiry": ""
+                    "warranty_date": "",
+                    "warranty_status": ""
                 },
                 "storage": []  # To store multiple storage devices
             }
@@ -124,6 +125,10 @@ class DetailedComputerAuditExtractor(BaseExtractor):
                     device["monitoring"]["network_int_ip"] = get_value(row, "Int IP Address")
                 elif "Realtek" in row[0] or "MAC Address" in row[0]:
                     device["monitoring"]["mac_address"] = row[-1].strip()
+                elif "Warranty Date:" in row[0]:
+                    device["lifecycle"]["warranty_date"] = get_value(row, "Warranty Date")
+                elif "Warranty Status:" in row[0]:
+                    device["lifecycle"]["warranty_status"] = get_value(row, "Warranty Status")
 
                 elif "Local Fixed Disk" in row:
                     # Add each storage device as a separate entry
@@ -136,7 +141,6 @@ class DetailedComputerAuditExtractor(BaseExtractor):
                     }
                     device["storage"].append(storage_device)
 
-            # Now add the device and its storage devices to the devices list
             devices.append(device)
 
         return devices

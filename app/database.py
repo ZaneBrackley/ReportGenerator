@@ -120,7 +120,8 @@ def create_tables(conn):
             id INTEGER PRIMARY KEY,
             device_id INTEGER NOT NULL,
             purchase_date TIMESTAMP,
-            warranty_expiry TIMESTAMP,
+            warranty_date VARCHAR,
+            warranty_status VARCHAR,
             FOREIGN KEY (device_id) REFERENCES devices(id)
         );
         """)
@@ -186,5 +187,12 @@ def insert_device_info(conn, device_data):
           device_data['monitoring']['network_ext_ip'],
           device_data['monitoring']['network_int_ip'],
           device_data['monitoring']['mac_address']))
+    
+    cursor.execute("""
+        INSERT INTO lifecycle (device_id, warranty_date, warranty_status)
+        VALUES (?, ?, ?)
+    """, (device_id,
+          device_data['lifecycle']['warranty_date'],
+          device_data['lifecycle']['warranty_status']))
 
     conn.commit()
