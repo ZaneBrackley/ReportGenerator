@@ -1,21 +1,27 @@
 from flask import Flask, render_template, request
-import os
+import sys, os
 import pdfplumber
 import camelot
 import sqlite3
-from config import Config
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from config.config import Config
 from extractor_dispatcher import get_extractor
 from database import create_tables, insert_device_info
 
-app = Flask(__name__)
+# Explicitly define template folder
+app = Flask(__name__, template_folder=os.path.join(os.path.dirname(__file__), '..', 'templates'))
 
 # Load configuration from config.py
-app.config.from_object(Config.DevelopmentConfig)  # Or use ProductionConfig in production
+app.config.from_object(Config)  # Or use ProductionConfig in production
 
 # Ensure temp dir exists
 os.makedirs(app.config['TEMP_FOLDER'], exist_ok=True)
 
 def reset_database():
+    os.makedirs(os.path.dirname(app.config['DB_PATH']), exist_ok=True)
+
     with sqlite3.connect(app.config['DB_PATH']) as conn:
         cursor = conn.cursor()
         cursor.execute("PRAGMA foreign_keys = OFF;")
@@ -72,9 +78,7 @@ def index():
             else:
                 all_text.append(f"Invalid file type: {file.filename}. Please upload PDF files only.")
 
-    return render_template('index.html',
-                           text="\n\n".join(all_text),
-                           tables=all_tables_html)
+    return render_template('index.html', text="\n\n".join(all_text), tables=all_tables_html)
 
 
 def extract_text_with_pdfplumber(pdf_path):
