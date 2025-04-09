@@ -14,14 +14,29 @@ class DetailedComputerAuditExtractor(BaseExtractor):
                     return item.split(":", 1)[-1].strip()
             return ""
 
-        def group_tables(tables, chunk_size=7):
-            table_dfs = [table.df for table in tables]
-            grouped_dfs = []
-            for i in range(0, len(table_dfs), chunk_size):
-                grouped_dfs.append(pd.concat(table_dfs[i:i + chunk_size], ignore_index=True))
-            return grouped_dfs
+        def clean_dataframe(df):
+            return df.astype(str).replace(r'\n', '', regex=True).map(str.strip)
 
-        grouped_tables = group_tables(self.tables)
+        def split_by_device(tables):
+            table_dfs = [clean_dataframe(table.df) for table in tables]
+            groups = []
+            current_group = []
+
+            for df in table_dfs:
+                first_cell = df.iloc[0, 0].strip().lower()
+                if "device information" in first_cell:
+                    if current_group:
+                        groups.append(current_group)
+                        current_group = []
+                current_group.append(df)
+
+            if current_group:
+                groups.append(current_group)
+
+            return [pd.concat(group, ignore_index=True) for group in groups]
+        
+        grouped_tables = split_by_device(self.tables)
+    
 
         for group in grouped_tables:
             # Device dictionary with a 'device' key
@@ -79,7 +94,8 @@ class DetailedComputerAuditExtractor(BaseExtractor):
             }
 
             rows = group.astype(str).map(str.strip).values.tolist()
-
+            for idx, row in enumerate(rows):
+                print(f"{idx:03d}: " + " | ".join(str(cell) for cell in row))
             rows_with_next = zip(rows, rows[1:] + [[""] * len(rows[0])])  # Handles end-of-list safely
 
             for row, next_row in rows_with_next:
@@ -111,7 +127,29 @@ class DetailedComputerAuditExtractor(BaseExtractor):
                 elif "BIOS Name:" in row[0]:
                     device["hardware"]["bios_version"] = get_value(row, "BIOS Name")
                 elif "Display Adapter" in row[0]:
-                    device["hardware"]["display_adapter"] = next_row[0].strip()
+                    adapters = []
+                    i = rows.index(row) + 1
+
+                    while i < len(rows):
+                        current = rows[i]
+
+                        # Stop at a known section header
+                        first_cell = current[0].strip() if current else ""
+                        if first_cell in ["Disk Drive", "Device Status", "User-Defined-Fields", "Device Information", "Hardware", "Networking"]:
+                            break
+
+                        # Check all columns in case multiple adapters are packed into one row
+                        for cell in current:
+                            if cell and isinstance(cell, str):
+                                cell = cell.strip()
+                                if cell and not any(x in cell for x in ["Description", "Size", "Used", "Used %"]):
+                                    # Split on pipes if multiple adapters in one cell
+                                    for adapter in cell.split("|"):
+                                        adapter = adapter.strip()
+                                        if adapter and adapter not in adapters:
+                                            adapters.append(adapter)
+                        i += 1
+                    device["hardware"]["display_adapter"] = " | ".join(adapters)
                 elif "Office Activation Key:" in row[0]:
                     device["software"]["office_key"] = get_value(row, "Office Activation Key")
                 elif "BitLocker Detail:" in row[0]:
@@ -131,7 +169,6 @@ class DetailedComputerAuditExtractor(BaseExtractor):
                     device["lifecycle"]["warranty_status"] = get_value(row, "Warranty Status")
 
                 elif "Local Fixed Disk" in row:
-                    # Add each storage device as a separate entry
                     storage_device = {
                         "drive_letter": row[0] if len(row) > 1 else "",
                         "disk_description": row[1] if len(row) > 1 else "",

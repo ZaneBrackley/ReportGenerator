@@ -29,26 +29,26 @@ cd ReportGenerator
 ```
 
 2. Setup the Virtual Environment and install the required Python libraries:
+`For Mac-OS and Linux`
 ```
 source ./setup.sh
 ```
-
-3. Configure your SQL database and connection settings in the `config.py` file.
-
-4. Ensure the following folders exist in the root of the project:
-- `temp` – Temporary folder for processing PDF files.
-- `db` – Folder where the SQLite database will be stored.
+`For Windows`
+```
+call setup.bat
+```
+3. Configure the database connection in `config.py` (if necessary).
 
 ## Usage
 1. Run the Flask application to upload and process the reports:
 ```
 python app/app.py
 ```
-2. Upload the PDF's that were downloaded from Datto RMM.
+1. Upload the PDF's that were downloaded from Datto RMM.
   
-3. The application will extract data from the PDFs, store it in the SQLite database, and generate a structured report in the root folder.
+2. The application will extract data from the PDFs, store it in the SQLite database, and generate a structured report in the root folder.
 
-4. The application will also reset the database and clear existing records whenever new files are uploaded.
+3. The application will also reset the database and clear existing records whenever new files are uploaded.
 
 ## Support
 For any questions or support, please contact zane.brackley@fullcircle.net.au

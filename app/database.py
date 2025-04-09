@@ -30,8 +30,8 @@ def create_tables(conn):
             processor VARCHAR,
             ram INTEGER,
             motherboard VARCHAR,
-            display_adapter VARCHAR,
             bios_version VARCHAR,
+            display_adapter VARCHAR,
             build_date DATE,
             FOREIGN KEY (device_id) REFERENCES devices(id)
         );
@@ -146,7 +146,7 @@ def insert_device_info(conn, device_data):
           device_data['device']['serial_number'],
           device_data['device']['os_version'],
           device_data['device']['architecture'],
-          device_data['device']['windows_key'],
+          device_data['device'].get('windows_key', 'NA'),
           device_data['device']['last_reboot']))
 
     device_id = cursor.lastrowid
