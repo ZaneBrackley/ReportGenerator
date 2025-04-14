@@ -46,16 +46,37 @@ def save_to_file(data):
         f.write(json.dumps(data, indent=2))
     print(f"✅ Device data saved to {output_path}")
 
+def choose_site(sites):
+    print("Available Sites:")
+    for i, name in enumerate(sites.keys(), start=1):
+        print(f"{i}. {name}")
+    
+    choice = input("Select a site by number or name: ").strip()
+
+    # If numeric, get by index
+    if choice.isdigit():
+        idx = int(choice) - 1
+        if idx < 0 or idx >= len(sites):
+            raise ValueError("Invalid selection")
+        selected_site = list(sites.items())[idx]
+    else:
+        if choice not in sites:
+            raise ValueError("Site name not found")
+        selected_site = (choice, sites[choice])
+
+    print(f"✅ Selected site: {selected_site[0]}")
+    return selected_site[1]["uid"]
+
 if __name__ == "__main__":
     config = load_config()
 
     api_url = config["api"]["url"]
     api_key = config["api"]["KEY"]
     api_secret = config["api"]["SECRET"]
-    site_uid = config["sites"]["site_name"]["uid"]
+
+    site_uid = choose_site(config["sites"])
 
     token = get_access_token(api_url, api_key, api_secret)
-
     devices = get_devices(api_url, token, site_uid)
-
+    
     save_to_file(devices)
