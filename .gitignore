@@ -8,3 +8,4 @@
 *.pyo
 config.yml
 devices_output.txt
+devices.db
