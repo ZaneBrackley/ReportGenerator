@@ -5,3 +5,5 @@ pdfplumber
 camelot-py
 python-docx
 opencv-python
+pyyaml
+requests

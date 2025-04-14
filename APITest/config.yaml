@@ -1,0 +1,10 @@
+api:
+  url: [YOUR API URL]
+  KEY: [YOUR API KEY]
+  SECRET: [YOUR API SECRET KEY]
+
+sites:
+  site_name:
+    uid: [SITE UID]
+
+

@@ -6,3 +6,5 @@
 /db/report_data.db
 *.pyc
 *.pyo
+config.yml
+devices_output.txt
