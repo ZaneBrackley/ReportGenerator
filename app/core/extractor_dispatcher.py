@@ -1,4 +1,4 @@
-from extractors.detailed_computer_audit import DetailedComputerAuditExtractor
+from core.extractors.detailed_computer_audit import DetailedComputerAuditExtractor
 
 def get_extractor(filename):
     # Add the logic to match the file and return the corresponding extractor class

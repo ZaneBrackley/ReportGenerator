@@ -20,18 +20,38 @@
         <!-- Logo and Header Section -->
         <div class="header-section">
             <img src="/static/logo.png" alt="Full Circle Logo" class="logo mb-3">
-            <h1 class="display-4">PDF Cybersecurity Audit Extractor</h1>
-            <p class="lead">Upload PDF reports to extract site information and details about devices.</p>
+            <h1 class="display-4">Cybersecurity Audit API and PDF Extractor</h1>
+            <p class="lead">Select a site for API extraction then upload the PDF repots for that site.</p>
         </div>
 
-        <!-- PDF Upload Form -->
+        <!-- PDF Upload Form with Site Selector -->
         <form method="POST" enctype="multipart/form-data" class="mb-5">
             <div class="mb-3">
-                <label for="file" class="form-label">Select PDF File</label>
+                <label for="site_select" class="form-label">Select Site for API extraction</label>
+                <select id="site_select" name="site" class="form-select" required>
+                    <option value="">Select a Site</option>
+                    {% for site in sites %}
+                        <option value="{{ site }}">{{ site }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="file" class="form-label">Upload PDF File(s)</label>
                 <input type="file" id="file" name="file" class="form-control" accept=".pdf" required>
             </div>
-            <button type="submit" class="btn btn-primary">Upload and Extract</button>
+            <button type="submit" class="btn btn-primary">Submit</button>
         </form>
+
+        {% if api_json %}
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                API Site JSON ({{ selected_site }})
+            </div>
+            <div class="card-body">
+                <pre>{{ api_json | tojson(indent=2) }}</pre>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Extracted Text Section -->
         {% if text %}

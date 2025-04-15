@@ -1,15 +1,14 @@
 from flask import Flask, render_template, request
-import sys, os
+import os
 import pdfplumber
 import camelot
 import sqlite3
 
-# Add parent directory to the system path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-from config.config import Config
-from extractor_dispatcher import get_extractor
-from database import create_tables, insert_device_info
+# Import configuration and other modules
+from config.config import Config, load_sites
+from api.datto_client import get_devices_for_site
+from core.extractor_dispatcher import get_extractor
+from core.database import create_tables, insert_device_info
 
 # Define template and static folder paths
 app = Flask(
@@ -48,11 +47,19 @@ reset_database()
 def index():
     all_text = []
     all_tables_html = []
+    sites = load_sites()
+    api_json_output = {}
 
     if request.method == 'POST':
         uploaded_files = request.files.getlist('file')
+        selected_site = request.form.get('site')  # Get selected site from form
 
-        # Drop all data whenever a new upload happens
+        if selected_site:
+            try:
+                api_json_output = get_devices_for_site(selected_site)
+            except Exception as e:
+                api_json_output = {"error": f"Failed to fetch API data: {e}"}
+
         reset_database()
 
         for file in uploaded_files:
@@ -60,14 +67,11 @@ def index():
                 file_path = os.path.join(app.config['TEMP_FOLDER'], file.filename)
                 file.save(file_path)
 
-                # Extract and store raw text
                 all_text.append(extract_text_with_pdfplumber(file_path))
 
-                # Read tables with Camelot
                 tables = camelot.read_pdf(file_path, pages='2-end', flavor='lattice', line_scale=40)
                 all_tables_html.extend([table.df.to_html(classes="table table-bordered") for table in tables])
 
-                # Dispatch and parse using appropriate extractor
                 try:
                     extractor = get_extractor(file.filename)(file_path, tables)
                     parsed_devices = extractor.parse()
@@ -83,7 +87,11 @@ def index():
             else:
                 all_text.append(f"Invalid file type: {file.filename}. Please upload PDF files only.")
 
-    return render_template('index.html', text="\n\n".join(all_text), tables=all_tables_html)
+    return render_template('index.html', text="\n\n".join(all_text),
+                           tables=all_tables_html,
+                           sites=sites,
+                           selected_site=request.form.get('site', ''),
+                           api_json=api_json_output)
 
 
 def extract_text_with_pdfplumber(pdf_path):
