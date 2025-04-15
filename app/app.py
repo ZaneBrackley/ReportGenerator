@@ -5,9 +5,8 @@ import camelot
 import sqlite3
 
 # Import configuration and other modules
-from config.config import Config, load_sites
-from api.datto_client import get_devices_for_site, get_device_audit
-from api.update_sites import populate_sites
+from config.config import Config
+from api.datto_client import *
 from core.extractor_dispatcher import get_extractor
 from core.database import create_tables, insert_device_from_api
 
@@ -24,6 +23,7 @@ app.config.from_object(Config)
 # Ensure temp dir exists
 os.makedirs(app.config['TEMP_FOLDER'], exist_ok=True)
 
+# Reset the database and drop all tables each time this is run
 def reset_database():
     os.makedirs(os.path.dirname(app.config['DB_PATH']), exist_ok=True)
 
@@ -79,11 +79,6 @@ def extract_text_with_pdfplumber(pdf_path):
             if page_text:
                 text += page_text + "\n\n"
     return text.strip()
-
-def initialize_sites():
-    if not os.path.exists('config/config.yml') or not load_sites():
-        populate_sites()
-
 
 if __name__ == "__main__":
     initialize_sites()
