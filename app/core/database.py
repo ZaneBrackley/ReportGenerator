@@ -1,12 +1,15 @@
 import sqlite3
+import datetime
 
 def create_tables(conn):
     try:
         cursor = conn.cursor()
-        print("Creating tables...")
+
+        # Devices table
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS devices (
             id INTEGER PRIMARY KEY,
+            uid TEXT UNIQUE,
             name VARCHAR,
             description TEXT,
             last_user VARCHAR,
@@ -19,6 +22,7 @@ def create_tables(conn):
         );
         """)
 
+        # Hardware table
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS hardware (
             id INTEGER PRIMARY KEY,
@@ -33,6 +37,7 @@ def create_tables(conn):
         );
         """)
 
+        # Storage table
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS storage (
             id INTEGER PRIMARY KEY,
@@ -46,6 +51,7 @@ def create_tables(conn):
         );
         """)
 
+        # Software table
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS software (
             id INTEGER PRIMARY KEY,
@@ -53,10 +59,12 @@ def create_tables(conn):
             office_key VARCHAR,
             antivirus VARCHAR,
             bitlocker_status VARCHAR,
+            software_status VARCHAR,
             FOREIGN KEY (device_id) REFERENCES devices(id)
         );
         """)
 
+        # Monitoring table
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS monitoring (
             id INTEGER PRIMARY KEY,
@@ -68,6 +76,7 @@ def create_tables(conn):
         );
         """)
 
+        # Security Events table
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS security_events (
             id INTEGER PRIMARY KEY,
@@ -79,6 +88,7 @@ def create_tables(conn):
         );
         """)
 
+        # Backups table
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS backups (
             id INTEGER PRIMARY KEY,
@@ -90,6 +100,7 @@ def create_tables(conn):
         );
         """)
 
+        # Device Health table
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS device_health (
             id INTEGER PRIMARY KEY,
@@ -100,17 +111,20 @@ def create_tables(conn):
         );
         """)
 
+        # Patch Management table
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS patch_management (
             id INTEGER PRIMARY KEY,
             device_id INTEGER NOT NULL,
-            patch_name VARCHAR,
             patch_status VARCHAR,
-            installed_at TIMESTAMP,
+            patches_approved_pending VARCHAR,
+            patches_not_approved VARCHAR,
+            patches_installed VARCHAR,
             FOREIGN KEY (device_id) REFERENCES devices(id)
         );
         """)
 
+        # Lifecycle table
         cursor.execute("""
         CREATE TABLE IF NOT EXISTS lifecycle (
             id INTEGER PRIMARY KEY,
@@ -122,6 +136,17 @@ def create_tables(conn):
         );
         """)
 
+        # UDFs table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS udfs (
+            id INTEGER PRIMARY KEY,
+            device_id INTEGER NOT NULL,
+            key TEXT NOT NULL,
+            value TEXT,
+            FOREIGN KEY (device_id) REFERENCES devices(id)
+        );
+        """)
+
         conn.commit()
 
     except sqlite3.Error as e:
@@ -129,66 +154,79 @@ def create_tables(conn):
     finally:
         cursor.close()
 
-def insert_device_info(conn, device_data):
+def insert_device_from_api(conn, api_data):
     cursor = conn.cursor()
 
+    # Insert into devices
     cursor.execute("""
-        INSERT INTO devices (name, description, last_user, domain, serial_number, os_version, architecture, windows_key, last_reboot)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (device_data['device']['device_name'],
-          device_data['device']['description'],
-          device_data['device']['last_user'],
-          device_data['device']['domain'],
-          device_data['device']['serial_number'],
-          device_data['device']['os_version'],
-          device_data['device']['architecture'],
-          device_data['device'].get('windows_key', 'NA'),
-          device_data['device']['last_reboot']))
+        INSERT OR IGNORE INTO devices (uid, name, description, last_user, domain, os_version, serial_number)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (
+        api_data.get("uid"),
+        api_data.get("hostname"),
+        api_data.get("description"),
+        api_data.get("lastLoggedInUser"),
+        api_data.get("domain"),
+        api_data.get("operatingSystem"),
+        api_data.get("serialNumber"),  # If serial number is available in the API, include it.
+    ))
 
-    device_id = cursor.lastrowid
+    # Get device ID
+    cursor.execute("SELECT id FROM devices WHERE uid = ?", (api_data.get("uid"),))
+    row = cursor.fetchone()
+    if not row:
+        print(f"Failed to fetch device ID for UID: {api_data.get('uid')}")
+        return
+    device_id = row[0]
 
+    # Insert into software (including antivirus and software status)
     cursor.execute("""
-        INSERT INTO hardware (device_id, processor, ram, motherboard, bios_version, display_adapter)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (device_id,
-          device_data['hardware']['cpu'],
-          device_data['hardware']['ram'],
-          device_data['hardware']['motherboard'],
-          device_data['hardware']['bios_version'],
-          device_data['hardware']['display_adapter']))
-
-    for storage in device_data['storage']:
-        cursor.execute("""
-            INSERT INTO storage (device_id, drive_letter, disk_description, disk_size, disk_used, disk_usage_percent)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (device_id,
-              storage['drive_letter'],
-              storage['disk_description'],
-              storage['disk_size'],
-              storage['disk_used'],
-              storage['disk_usage_percent']))
-
-    cursor.execute("""
-        INSERT INTO software (device_id, office_key, antivirus, bitlocker_status)
-        VALUES (?, ?, ?, ?)
-    """, (device_id,
-          device_data['software']['office_key'],
-          device_data['software']['antivirus'],
-          device_data['software']['bitlocker_status']))
-
-    cursor.execute("""
-        INSERT INTO monitoring (device_id, network_ext_ip, network_int_ip, mac_address)
-        VALUES (?, ?, ?, ?)
-    """, (device_id,
-          device_data['monitoring']['network_ext_ip'],
-          device_data['monitoring']['network_int_ip'],
-          device_data['monitoring']['mac_address']))
-    
-    cursor.execute("""
-        INSERT INTO lifecycle (device_id, warranty_date, warranty_status)
+        INSERT INTO software (device_id, antivirus, software_status)
         VALUES (?, ?, ?)
-    """, (device_id,
-          device_data['lifecycle']['warranty_date'],
-          device_data['lifecycle']['warranty_status']))
+    """, (
+        device_id,
+        api_data.get("antivirus", {}).get("antivirusProduct"),
+        api_data.get("softwareStatus"),
+    ))
+
+    # Insert patch management info
+    cursor.execute("""
+        INSERT INTO patch_management (device_id, patch_status, patches_approved_pending, patches_not_approved, patches_installed)
+        VALUES (?, ?, ?, ?, ?)
+    """, (
+        device_id,
+        api_data.get("patchManagement").get("patchStatus"),
+        api_data.get("patchManagement").get("patchesApprovedPending"),
+        api_data.get("patchManagement").get("patchesNotApproved"),
+        api_data.get("patchManagement").get("patchesInstalled")
+    ))
+
+    # Insert into monitoring
+    cursor.execute("""
+        INSERT INTO monitoring (device_id, network_ext_ip, network_int_ip)
+        VALUES (?, ?, ?)
+    """, (
+        device_id,
+        api_data.get("extIpAddress"),
+        api_data.get("intIpAddress"),
+    ))
+
+    # Insert into lifecycle (warranty info)
+    cursor.execute("""
+        INSERT INTO lifecycle (device_id, warranty_date)
+        VALUES (?, ?)
+    """, (
+        device_id,
+        api_data.get("warrantyDate")
+    ))
+
+    # Insert UDFs
+    for key, value in api_data.get("udf", {}).items():
+        if value and str(value).lower() != "null":
+            cursor.execute("""
+                INSERT INTO udfs (device_id, key, value)
+                VALUES (?, ?, ?)
+            """, (device_id, key, str(value)))
 
     conn.commit()
+    cursor.close()

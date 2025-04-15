@@ -52,34 +52,6 @@
             </div>
         </div>
         {% endif %}
-
-        <!-- Extracted Text Section -->
-        {% if text %}
-        <div class="card mb-4">
-            <div class="card-header bg-secondary text-white">
-                Extracted Text
-            </div>
-            <div class="card-body">
-                <pre class="text-wrap">{{ text }}</pre>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Extracted Tables Section -->
-        {% if tables %}
-        <div class="card">
-            <div class="card-header bg-secondary text-white">
-                Extracted Tables
-            </div>
-            <div class="card-body">
-                {% for table in tables %}
-                    <div class="table-responsive mb-4">
-                        {{ table | safe }}
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

@@ -6,10 +6,10 @@ import sqlite3
 
 # Import configuration and other modules
 from config.config import Config, load_sites
-from api.datto_client import get_devices_for_site
+from api.datto_client import get_devices_for_site, get_device_audit
 from api.update_sites import populate_sites
 from core.extractor_dispatcher import get_extractor
-from core.database import create_tables, insert_device_info
+from core.database import create_tables, insert_device_from_api
 
 # Define template and static folder paths
 app = Flask(
@@ -53,47 +53,23 @@ def index():
 
     if request.method == 'POST':
         uploaded_files = request.files.getlist('file')
-        selected_site = request.form.get('site')  # Get selected site from form
+        selected_site = request.form.get('site')
 
-        if selected_site:
-            try:
-                api_json_output = get_devices_for_site(selected_site)
-            except Exception as e:
-                api_json_output = {"error": f"Failed to fetch API data: {e}"}
+        if not selected_site:
+            return render_template('index.html', sites=sites, selected_site='', api_json=api_json_output)
 
         reset_database()
 
-        for file in uploaded_files:
-            if file.filename.endswith('.pdf'):
-                file_path = os.path.join(app.config['TEMP_FOLDER'], file.filename)
-                file.save(file_path)
+        # Step 1–3: Fetch and insert Datto site + device audit info
+        api_json_output = get_devices_for_site(selected_site)
+        if "devices" not in api_json_output:
+            raise ValueError("No devices found in API response.")
 
-                all_text.append(extract_text_with_pdfplumber(file_path))
+        with sqlite3.connect(app.config['DB_PATH']) as conn:
+            for device in api_json_output["devices"]:
+                insert_device_from_api(conn, device)
 
-                tables = camelot.read_pdf(file_path, pages='2-end', flavor='lattice', line_scale=40)
-                all_tables_html.extend([table.df.to_html(classes="table table-bordered") for table in tables])
-
-                try:
-                    extractor = get_extractor(file.filename)(file_path, tables)
-                    parsed_devices = extractor.parse()
-
-                    with sqlite3.connect(app.config['DB_PATH']) as conn:
-                        for device_info in parsed_devices:
-                            insert_device_info(conn, device_info)
-
-                except ValueError as e:
-                    all_text.append(f"Unsupported file: {file.filename} - {str(e)}")
-
-                os.remove(file_path)
-            else:
-                all_text.append(f"Invalid file type: {file.filename}. Please upload PDF files only.")
-
-    return render_template('index.html', text="\n\n".join(all_text),
-                           tables=all_tables_html,
-                           sites=sites,
-                           selected_site=request.form.get('site', ''),
-                           api_json=api_json_output)
-
+    return render_template('index.html', sites=sites, selected_site=request.form.get('site', ''), api_json=api_json_output)
 
 def extract_text_with_pdfplumber(pdf_path):
     text = ""
