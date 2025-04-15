@@ -3,8 +3,4 @@ api:
   KEY: [YOUR API KEY]
   SECRET: [YOUR API SECRET KEY]
 
-sites:
-  site_name:
-    uid: [SITE UID]
-
-
+# Sites will be auto filled based on your API credentials

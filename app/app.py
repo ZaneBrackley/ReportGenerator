@@ -7,6 +7,7 @@ import sqlite3
 # Import configuration and other modules
 from config.config import Config, load_sites
 from api.datto_client import get_devices_for_site
+from api.update_sites import populate_sites
 from core.extractor_dispatcher import get_extractor
 from core.database import create_tables, insert_device_info
 
@@ -103,6 +104,11 @@ def extract_text_with_pdfplumber(pdf_path):
                 text += page_text + "\n\n"
     return text.strip()
 
+def initialize_sites():
+    if not os.path.exists('config/config.yml') or not load_sites():
+        populate_sites()
+
 
 if __name__ == "__main__":
+    initialize_sites()
     app.run(debug=True)
